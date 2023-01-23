@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+*$py.class
+env
+venv
+.venv
+env.bak
+venv.bak
+.venv.bak
+pip-log.txt
+pip-delete-this-directory.txt
+.vscode/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
