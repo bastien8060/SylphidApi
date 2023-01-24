@@ -43,13 +43,13 @@ def calculate_tokens(prompt):
     return len(tokenizer(prompt)["input_ids"])
 
 def generate_message(prompt, user=None, newline=False):
-    openai.api_key =  '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'
-
-    if not (user is None):
-        prompt += f"{user} > "
+    openai.api_key =  ''
     
     if newline:
         prompt += "\n"
+
+    if user:
+        prompt += f"{user} > "
 
     print(f'DEBUG | We are using {calculate_tokens(prompt)} tokens')
     print(f'DEBUG | Generating from prompt: {prompt}')
@@ -66,10 +66,14 @@ def generate_message(prompt, user=None, newline=False):
         top_p=1,
         frequency_penalty=0.5,
         presence_penalty=0,
-        stop=["Anna >", "Bastien >"]
+        stop=["Anna >", "Bastien >", "DM >"]
     )
 
-    return f"{user} > {str(response['choices'][0]['text']).strip()}"
+    response = str(response['choices'][0]['text'])
+
+    response.strip("DM >")
+
+    return f"{response.strip()}"
 
 @mod_game_dnd.route('/', methods=['GET', 'POST'])
 def list_campaigns():
@@ -221,8 +225,6 @@ def new_campaign_conversation(campaignID, username=None, message=None):
         if message is None:
             message = request.json['message']
 
-        message = f'{username} > {message}'
-
         dnd_conversation = DnD_Conversation(
             username=username,
             message=message,
@@ -236,6 +238,7 @@ def new_campaign_conversation(campaignID, username=None, message=None):
             if _campaignID == campaignID:
                 ws.send(json.dumps({
                     'type': 'new_conversation',
+                    'status': 0,
                     'data': {
                         'id': dnd_conversation.id,
                         'username': dnd_conversation.username,
@@ -271,7 +274,7 @@ def new_campaign_conversation_dm(campaignID):
         # get all messages to add to the context
         messages = DnD_Conversation.query.filter_by(campaignID=campaignID).all()
         for message in messages:
-            context += f'{message.message}\n'
+            context += f'{message.username} > {message.message}\n'
 
         dnd_conversation = DnD_Conversation(
             username="DM",
@@ -286,6 +289,7 @@ def new_campaign_conversation_dm(campaignID):
             if _campaignID == campaignID:
                 ws.send(json.dumps({
                     'type': 'new_conversation',
+                    'status': 0,
                     'data': {
                         'id': dnd_conversation.id,
                         'username': dnd_conversation.username,
@@ -317,14 +321,20 @@ def remove_campaign_conversation(campaignID, convID):
 
         # get all (ws, campaignID) in subscriptions, where campaignID == campaignID
         for ws, _campaignID in subscriptions.values():
+            print('going to try to send remove_conversation callback')
             if _campaignID == campaignID:
+                print('will send remove_conversation callback')
                 ws.send(json.dumps({
                     'type': 'remove_conversation',
+                    'status': 0,
                     'data': {
                         'id': convID,
                         'status': 'deleted'
                     }
                 }))
+                print('sent remove_conversation callback')
+            else:
+                print('will not send remove_conversation callback')
 
 
         return resp_handler.get_handler("response_ok", {"data": {
@@ -379,7 +389,7 @@ def get_campaign_full_context(campaignID):
         # get all messages to add to the context
         messages = DnD_Conversation.query.filter_by(campaignID=campaignID).all()
         for message in messages:
-            context += f'{message.message}\n'
+            context += f'{message.username} > {message.message}\n'
 
         return resp_handler.get_handler("response_ok", {"data": {
             'context': context
@@ -396,7 +406,7 @@ subscriptions = {
 
 # WS route for all of these functions/route above.
 @sock.route('/api/v1/games/dnd/ws')
-def endpoint(ws):
+def endpoint_mngr_dnd(ws):
     username = None
     while True:
         # get message from client

@@ -1,4 +1,5 @@
 # Import flask dependencies
+import json
 from flask import Blueprint, request, render_template, \
                   flash, g, session, redirect, url_for
 from sqlalchemy import or_
@@ -28,6 +29,8 @@ from multiprocessing import Process
 
 import time
 
+from app import sock
+
 
 # Define the blueprint: 'dates', set its url prefix: app.url/dates
 mod_partner = Blueprint('partner', __name__, url_prefix='/api/v1/partner')
@@ -39,8 +42,6 @@ partners_img = {
 }
 
 process = None
-
-
 
 def set_partners_live_status(status: List[dict]):
     #set back to Status table
@@ -81,6 +82,19 @@ def clearStatusThread():
             partners_live_status[partner] = new_status
             print('cleared status')
 
+            for ws in subscriptions.values():
+                if not ws:
+                    continue
+                try:
+                    ws.send(json.dumps({
+                        'type': 'list_others_status',
+                        'status': 0,
+                        'message': 'Syn',
+                        'data': json.loads(list_others_status(partner)[0])
+                    }))
+                except:
+                    pass
+
         set_partners_live_status(partners_live_status)
 
         time.sleep(90)
@@ -94,28 +108,36 @@ def clearStatusThreadManager():
         process.start()
 
 
-
-    
-
-
-
-@mod_partner.route('/<string:partner>/status/set/<string:page>', methods=['GET'])
-def set_status(partner, page):
+@mod_partner.route('/<string:username>/status/set/<string:page>', methods=['GET'])
+def set_self_status(username, page):
     # function to set a user's status to online and set the last seen page
 
-    if partner not in partners:
+    if username not in partners:
         return resp_handler.get_handler("token_auth")
 
     partners_live_status = get_partners_live_status()
 
-    partners_live_status[partner] = {
+    partners_live_status[username] = {
         'online': True,
         'last_seen': datetime.datetime.now(),
         'page': page,
-        'username': partner
+        'username': username
     }
 
     set_partners_live_status(partners_live_status)
+
+    for ws in subscriptions.values():
+        if not ws:
+            continue
+        try:
+            ws.send(json.dumps({
+                'type': 'list_others_status',
+                'status': 0,
+                'message': 'Syn',
+                'data': json.loads(list_others_status(username)[0])
+            }))
+        except Exception as e:
+            print(e)
 
     return resp_handler.get_handler("response_ok", {"data": {
         'status': True
@@ -125,17 +147,16 @@ def set_status(partner, page):
     return resp_handler.get_handler("unhandled_error", "Missing username/secret")
 
 
-@mod_partner.route('/<string:partner>/other_status', methods=['GET'])
-def list(partner):
+@mod_partner.route('/<string:username>/other_status', methods=['GET'])
+def list_others_status(username):
     # function to check a user's status
-
     try:
         clearStatusThreadManager()
 
-        if partner not in partners:
+        if username not in partners:
             return resp_handler.get_handler("token_auth")
 
-        other_partner = partners[0] if partner == partners[1] else partners[1]
+        other_partner = partners[0] if username == partners[1] else partners[1]
 
         partners_live_status = get_partners_live_status()
 
@@ -162,3 +183,83 @@ def list(partner):
 
     return resp_handler.get_handler("unhandled_error", "Missing username/secret")
 
+subscriptions = {
+    # username: (ws)
+}
+
+# WS route for all of these functions/route above.
+@sock.route('/api/v1/partner/ws')
+def endpoint_mngr_partner(ws):
+    username = None
+    while True:
+        # get message from client
+        message = ws.receive()
+        
+        # Parse the api request
+        try:
+            req = json.loads(message)
+            action = req['action']
+            args = req['args']
+        except:
+            ws.send(json.dumps({
+                'status': 1,
+                'type': 'error',
+                'message': 'Invalid request',
+                'details': 'Parsing error'
+            }))
+
+        if message is not None:
+            if action == 'init':
+                username = args['username']
+                subscriptions[username] = None
+                ws.send(json.dumps({
+                    'type': 'init',
+                    'status': 0,
+                    'message': 'Syn',
+                }))
+
+            elif action == 'subscribe':
+                subscriptions[username] = ws
+                ws.send(json.dumps({
+                    'type': 'subscribe',
+                    'status': 0,
+                    'message': 'Syn',
+                }))
+
+            elif action == 'ack':
+                ws.send(json.dumps({
+                    'type': 'ack',
+                    'status': 0,
+                    'message': 'Syn',
+                }))
+
+            elif action == 'list_others_status':
+                ws.send(json.dumps({
+                    'type': 'list_others_status',
+                    'status': 0,
+                    'message': 'Syn',
+                    'data': json.loads(list_others_status(username)[0])
+                }))
+
+            elif action == 'set_self_status':
+                page = args['page']
+                ws.send(json.dumps({
+                    'type': 'set_self_status',
+                    'status': 0,
+                    'message': 'Syn',
+                    'data': json.loads(set_self_status(username, page)[0])
+                }))
+            else:
+                ws.send(json.dumps({
+                    'status': 1,
+                    'type': 'error',
+                    'message': 'Invalid request',
+                    'details': 'Invalid action'
+                }))
+
+            
+            
+
+            
+
+            
