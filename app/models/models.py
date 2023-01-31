@@ -126,3 +126,51 @@ class DnD_Context(Base):
 
     def __repr__(self):
         return '<DnD_Context %r>' % (self.id)
+
+class Story_Object(Base):
+    __tablename__ = 'story_object'
+    __table_args__ = {'extend_existing': True} 
+
+    name     = db.Column(db.String(128),  nullable=False)
+    descrpt  = db.Column(db.String(1000),  nullable=False)
+    theme    = db.Column(db.String(128),  nullable=False)
+    location = db.Column(db.String(128),  nullable=False)
+
+    # New instance instantiation procedure
+    def __init__(self, name, descrpt, theme, location):
+        self.name     = name
+        self.descrpt  = descrpt
+        self.theme    = theme
+        self.location = location
+
+class Story_Conversation(Base):
+    __tablename__ = 'story_conversation'
+    __table_args__ = {'extend_existing': True} 
+
+    username = db.Column(db.String(128),  nullable=False)
+    storyID = db.Column(db.Integer,  nullable=False)
+    message  = db.Column(db.String(12000),  nullable=False)
+
+    # New instance instantiation procedure
+    def __init__(self, username, storyID, message):
+        self.username = username
+        self.storyID = storyID
+        self.message  = message
+
+    def __repr__(self):
+        return '<Story_Conversation %r>' % (self.id)
+
+class Story_Context(Base):
+    __tablename__ = 'story_context'
+    __table_args__ = {'extend_existing': True} 
+
+    storyID = db.Column(db.Integer,  nullable=False)
+    context  = db.Column(db.String(12000),  nullable=False)
+
+    # New instance instantiation procedure
+    def __init__(self, storyID, context):
+        self.storyID = storyID
+        self.context  = context
+
+    def __repr__(self):
+        return '<Story_Context %r>' % (self.id)

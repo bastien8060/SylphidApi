@@ -107,6 +107,14 @@ def new_campaign(theme, location, name, description):
     db.session.add(new_campaign)
     db.session.commit()
 
+    # delete all contexts with this campaign's id (old records)
+    DnD_Context.query.filter_by(campaignID=new_campaign.id).delete()
+    db.session.commit()
+
+    # delete all conversations with this campaign's id (old records)
+    DnD_Conversation.query.filter_by(campaignID=new_campaign.id).delete()
+    db.session.commit()
+
     timestamp = datetime.datetime.now().strftime("%a, %d %b %Y %H:%M:%S GMT")
     context = f"Intro: GPT3, you are the DM. You will play a campaign of DnD\n----------------\nDnD - for DM to remember in game | [remember]: \n-- player1 is Anna; player2 is Bastien\n----------------\nDnD Real Life Context: \n\n- Anna, 17, is Irish but born in Moldova. She speaks English, Russian and some Irish. Lives in Ashbourne, Meath, with her mother who is strict, father who is nicer. 2 sisters: Daria (15yo), who studies her Leaving cert (Institute of Education, Dublin). Also Nia (23yo) who study Radiology at UCD and. Anna studies Midwifery at UCD and takes the 103/103x bus from Ashbourne to Dublin and the 46a/145/155/39a from Dublin to UCD. She likes sewing, listening to Spotify, her birthday is June 22nd 2005, wants to visit Moldova next summer with her partner Bastien, meet her grandparents, take a hairdressing course her sister Nia completed. Anna has nicknames for Bastien \"Pumpkin, Mr. Krabby, handsome\", likes receiving Shein bags or wine from NPCs in DnD campaigns. Likes hitting Bastien with a baguette. Her father's name is Yuri, her best friend is a Portuguese girl, Livia (23), who is sarcastic and has dark humor.\n- Emily: 19, Australian studying CompSci in Dublin, dark humor, often at Starbucks\n- Iakov or Yasha: Russian, fascinated by cars and car-racing. Goes swimming in UCD.\n- Bastien, 18 and from Stillorgan, was born in France and grew up in Ireland. He's been in a relationship with Anna since September 9th, 2022. He has two brothers, Louis (8) and Arthur (1). His father is strict but his mother is nicer. He enjoys chess, programming, and listening to Spotify with Anna. He often visits Anna at UCD and plans to study Computer Science there next year. He walks Anna to her bus stop after taking the 39a from UCD to the city center and calls her by various pet names (Smoothie, Sweetie, Cutie pie, sweetheart, darling). Bastien is 5ft 8, has brown hair and eyes. He's visited Anna in Barcelona. Bastien's birthday is the 20th April 2004\n- Jacky: Chinese, loves CompSci, building keyboards, Minecraft, anime/mangas, and fountain pens\n- Daria doesn't really like Anna and Bastien's friends: Jacky, Emily, Iakov, etc.. Daria is quite shy and doesn't talk much. Nia: very talktative\n----------------\nDnD Params:\nCurrent timestamp: {timestamp}\nTheme: {theme}\nStarting point: {location}\n----------------\nInstructions for DM:\n-- Should initiate actions from NPCs. Eg: attack, talk, be kind, etc...\n-- Should create long prompts/responses to the users, describe clearly what happened, create plot twists, etc...\n-- Should describe surroundings.\n-- NPCs should interact with players\n-- DM can ask dice rolls for the story.\n-- NPCs should be reffered to with a name or description.\n-- DO not describe or introduce too many friends.\n-- DM should start with [remember] all important details to be remembered, eg. ```\nDM> [remember] fact 1, fact2\nDM> Okayy you are now in fact1, and fact2 has...\n```\n----------------\nDM > [remember] player1 is Anna; player2 is Bastien\nDM > We have two players! Anna and Bastien!\nBastien > Are you ready Anna?\nAnna > Yes!\nBastien > Great! You may begin game master! Create some NPCs, tell us where we are and start the game!\n"
 
@@ -164,6 +172,34 @@ def get_campaign(campaignID):
             'id': campaign.id,
         }
         return resp_handler.get_handler("response_ok", {"data": data})
+
+    except:
+        pass
+
+    return
+
+@mod_game_dnd.route('/<campaignID>/delete', methods=['GET', 'POST'])
+def delete_campaign(campaignID):
+    # function to delete campaign
+
+    try:
+        campaign = DnD_Campaign.query.filter_by(id=campaignID).first()
+        db.session.delete(campaign)
+        db.session.commit()
+
+        # get all (ws, campaignID) in subscriptions, where campaignID == campaignID
+        for ws, _campaignID in subscriptions.values():
+            if _campaignID == campaignID:
+                ws.send(json.dumps({
+                    'type': 'delete_campaign',
+                    'data': {
+                        'id': campaignID,
+                    }
+                }))
+
+        return resp_handler.get_handler("response_ok", {"data": {
+            'id': campaignID,
+        }})
 
     except:
         pass
@@ -342,8 +378,8 @@ def remove_campaign_conversation(campaignID, convID):
             'status': 'deleted'
         }})
 
-    except:
-        pass
+    except Exception as e:
+        print(e)
 
     return
 
@@ -507,12 +543,20 @@ def endpoint_mngr_dnd(ws):
                     'details': json.loads(new_campaign_conversation_dm(args['campaignID'])[0])
                 }))
             elif action == 'remove_campaign_conversation':
-                ws.send(json.dumps({
-                    'status': 0,
-                    'type': 'remove_campaign_conversation',
-                    'message': 'Conversation removed',
-                    'details': json.loads(remove_campaign_conversation(args['campaignID'], args['convID'])[0])
-                }))
+                try:
+                    ws.send(json.dumps({
+                        'status': 0,
+                        'type': 'remove_campaign_conversation',
+                        'message': 'Conversation removed',
+                        'details': json.loads(remove_campaign_conversation(args['campaignID'], args['convID'])[0])
+                    }))
+                except:
+                     ws.send(json.dumps({
+                        'status': 0,
+                        'type': 'remove_campaign_conversation',
+                        'message': 'Conversation removed',
+                        'details': -1
+                     }))
             elif action == 'remove_campaign_last_conversation':
                 ws.send(json.dumps({
                     'status': 0,

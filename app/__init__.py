@@ -73,21 +73,29 @@ from app.mod_partner.controllers import mod_partner as partner_module
 from app.mod_games.controllers import mod_games as games_module
 from app.mod_game_truthordare.controllers import mod_game_truthordare as game_truthordare_module
 from app.mod_game_dnd.controllers import mod_game_dnd as game_dnd_module
+from app.mod_game_story.controllers import mod_game_story as game_story_module
+from app.mod_config.controllers import mod_config as config_module
+from app.mod_game_conversationStarter.controllers import mod_game_conversationStarter as game_conversationStarter_module
 
 
 # Register blueprint(s) imported from earlier.
 app.register_blueprint(auth_module)
+app.register_blueprint(config_module)
 app.register_blueprint(dates_module)
 app.register_blueprint(updates_module)
 app.register_blueprint(partner_module)
 app.register_blueprint(games_module)
 app.register_blueprint(game_truthordare_module)
 app.register_blueprint(game_dnd_module)
+app.register_blueprint(game_story_module)
+app.register_blueprint(game_conversationStarter_module)
 
 
 # Build the database:
 # This will create the database file using SQLAlchemy
 # This is built using the models.py file, used by each blueprint
+
+
 
 with app.app_context() as ctx:
   # Create the database
