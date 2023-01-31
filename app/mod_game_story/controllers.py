@@ -133,16 +133,21 @@ def new_story(theme, location, name, description):
 
     # get all (ws, storyID) in subscriptions, where storyID == storyID
     for ws, _storyID in subscriptions.values():
-        ws.send(json.dumps({
-            'type': 'new_story',
-            'data': {
-                'id': new_story.id,
-                'name': new_story.name,
-                'descrpt': new_story.descrpt,
-                'theme': new_story.theme,
-                'id': new_story.id,
-            }
-        }))
+        if not ws:
+            continue
+        try:
+            ws.send(json.dumps({
+                'type': 'new_story',
+                'data': {
+                    'id': new_story.id,
+                    'name': new_story.name,
+                    'descrpt': new_story.descrpt,
+                    'theme': new_story.theme,
+                    'id': new_story.id,
+                }
+            }))
+        except:
+            pass
 
 
 
@@ -227,13 +232,18 @@ def get_story_conversations(storyID):
             )
         
         for ws, _storyID in subscriptions.values():
-            if _storyID == storyID:
-                ws.send(json.dumps({
-                    'status': 0,
-                    'type': 'get_story_conversations',
-                    'message': 'Story conversations',
-                    'details': data
-                }))
+            if not ws:
+                continue
+            try:
+                if _storyID == storyID:
+                    ws.send(json.dumps({
+                        'status': 0,
+                        'type': 'get_story_conversations',
+                        'message': 'Story conversations',
+                        'details': data
+                    }))
+            except:
+                pass
             
         return resp_handler.get_handler("response_ok", {"data": data})
     
@@ -269,17 +279,22 @@ def new_story_conversation(storyID, username=None, message=None):
 
         # get all (ws, storyID) in subscriptions, where storyID == storyID
         for ws, _storyID in subscriptions.values():
-            if _storyID == storyID:
-                ws.send(json.dumps({
-                    'type': 'new_conversation',
-                    'status': 0,
-                    'data': {
-                        'id': story_conversation.id,
-                        'username': story_conversation.username,
-                        'message': story_conversation.message,
-                        'storyID': story_conversation.storyID,
-                    }
-                }))
+            if not ws:
+                continue
+            try:
+                if _storyID == storyID:
+                    ws.send(json.dumps({
+                        'type': 'new_conversation',
+                        'status': 0,
+                        'data': {
+                            'id': story_conversation.id,
+                            'username': story_conversation.username,
+                            'message': story_conversation.message,
+                            'storyID': story_conversation.storyID,
+                        }
+                    }))
+            except:
+                pass
 
         return resp_handler.get_handler("response_ok", {"data": {
             'id': story_conversation.id,
@@ -333,17 +348,22 @@ def new_story_conversation_bot(storyID):
 
     # get all (ws, storyID) in subscriptions, where storyID == storyID
     for ws, _storyID in subscriptions.values():
-        if _storyID == storyID:
-            ws.send(json.dumps({
-                'type': 'new_conversation',
-                'status': 0,
-                'data': {
-                    'id': story_conversation.id,
-                    'username': story_conversation.username,
-                    'message': story_conversation.message,
-                    'storyID': story_conversation.storyID,
-                }
-            }))
+        if not ws:
+            continue
+        try:
+            if _storyID == storyID:
+                ws.send(json.dumps({
+                    'type': 'new_conversation',
+                    'status': 0,
+                    'data': {
+                        'id': story_conversation.id,
+                        'username': story_conversation.username,
+                        'message': story_conversation.message,
+                        'storyID': story_conversation.storyID,
+                    }
+                }))
+        except:
+            pass
 
     return resp_handler.get_handler("response_ok", {"data": {
         'id': story_conversation.id,
@@ -368,20 +388,25 @@ def remove_story_conversation(storyID, convID):
 
         # get all (ws, storyID) in subscriptions, where storyID == storyID
         for ws, _storyID in subscriptions.values():
-            print('going to try to send remove_conversation callback')
-            if _storyID == storyID:
-                print('will send remove_conversation callback')
-                ws.send(json.dumps({
-                    'type': 'remove_conversation',
-                    'status': 0,
-                    'data': {
-                        'id': convID,
-                        'status': 'deleted'
-                    }
-                }))
-                print('sent remove_conversation callback')
-            else:
-                print('will not send remove_conversation callback')
+            if not ws:
+                continue
+            try:
+                print('going to try to send remove_conversation callback')
+                if _storyID == storyID:
+                    print('will send remove_conversation callback')
+                    ws.send(json.dumps({
+                        'type': 'remove_conversation',
+                        'status': 0,
+                        'data': {
+                            'id': convID,
+                            'status': 'deleted'
+                        }
+                    }))
+                    print('sent remove_conversation callback')
+                else:
+                    print('will not send remove_conversation callback')
+            except:
+                pass
 
 
         return resp_handler.get_handler("response_ok", {"data": {
@@ -411,13 +436,18 @@ def remove_story_last_conversation(storyID):
 
         # get all (ws, storyID) in subscriptions, where storyID == storyID
         for ws, _storyID in subscriptions.values():
-            ws.send(json.dumps({
-                'type': 'remove_last_conversation',
-                'data': {
-                    'id': last_conv.id,
-                    'status': 'deleted'
-                }
-            }))
+            if not ws:
+                continue
+            try:
+                ws.send(json.dumps({
+                    'type': 'remove_last_conversation',
+                    'data': {
+                        'id': last_conv.id,
+                        'status': 'deleted'
+                    }
+                }))
+            except:
+                pass
         
         # refresh message list, by calling get_story_conversations
         get_story_conversations(storyID)
@@ -462,141 +492,144 @@ subscriptions = {
 # WS route for all of these functions/route above.
 @sock.route('/api/v1/games/story/ws')
 def endpoint_mngr_story(ws):
-    username = None
-    while True:
-        # get message from client
-        message = ws.receive()
+    try:
+        username = None
+        while True:
+            # get message from client
+            message = ws.receive()
 
-        # Parse the api request
-        try:
-            req = json.loads(message)
-            action = req['action']
-            args = req['args']
-        except:
-            ws.send(json.dumps({
-                'status': 1,
-                'type': 'error',
-                'message': 'Invalid request',
-                'details': 'Parsing error'
-            }))
-
-        if message is not None:
-            if action == 'init':
-                username = args['username']
-                subscriptions[username] = (ws, -1)
-                ws.send(json.dumps({
-                    'type': 'init',
-                    'status': 0,
-                    'message': 'Syn',
-                }))
-            
-            elif action == 'subscribe':
-                subscriptions[username] = (ws, args['storyID'])
-                ws.send(json.dumps({
-                    'type': 'subscribe',
-                    'status': 0,
-                    'message': 'Syn',
-                }))
-
-            elif action == 'ack':
-                ws.send(json.dumps({
-                    'type': 'ack',
-                    'status': 0,
-                    'message': 'Syn',
-                }))
-
-            elif action == 'list_stories':
-                ws.send(json.dumps({
-                    'status': 0,
-                    'type': 'list_stories',
-                    'message': 'List of stories',
-                    'details': json.loads(list_stories()[0])
-                }))
-            elif action == 'new_story':
-                ws.send(json.dumps({
-                    'status': 0,
-                    'type': 'new_story',
-                    'message': 'New story created',
-                    'details': json.loads(new_story(args['theme'], args['location'], args['name'], args['description'])[0])
-                }))
-            elif action == 'get_story':
-                ws.send(json.dumps({
-                    'status': 0,
-                    'type': 'get_story',
-                    'message': 'Story data',
-                    'details': json.loads(get_story(args['storyID'])[0])
-                }))
-            elif action == 'get_story_context':
-                ws.send(json.dumps({
-                    'status': 0,
-                    'type': 'get_story_context',
-                    'message': 'Story context',
-                    'details': json.loads(get_story_context(args['storyID'])[0])
-                }))
-            elif action == 'get_story_conversations':
-                ws.send(json.dumps({
-                    'status': 0,
-                    'type': 'get_story_conversations',
-                    'message': 'Story conversations',
-                    'details': json.loads(get_story_conversations(args['storyID'])[0])
-                }))
-            elif action == 'new_story_conversation':
-                ws.send(json.dumps({
-                    'status': 0,
-                    'type': 'new_story_conversation',
-                    'message': 'New conversation created',
-                    'details': json.loads(new_story_conversation(args['storyID'], args['username'], args['message'])[0])
-                }))
-            elif action == 'new_story_conversation_direct':
-                ws.send(json.dumps({
-                    'status': 0,
-                    'type': 'new_story_conversation_direct',
-                    'message': 'New conversation created',
-                    'details': json.loads(new_story_conversation_direct(args['storyID'], args['username'], args['message'])[0])
-                }))
-            elif action == 'new_story_conversation_bot':
-                ws.send(json.dumps({
-                    'status': 0,
-                    'type': 'new_story_conversation_bot',
-                    'message': 'New conversation created',
-                    'details': json.loads(new_story_conversation_bot(args['storyID'])[0])
-                }))
-            elif action == 'remove_story_conversation':
-                try:
-                    ws.send(json.dumps({
-                        'status': 0,
-                        'type': 'remove_story_conversation',
-                        'message': 'Conversation removed',
-                        'details': json.loads(remove_story_conversation(args['storyID'], args['convID'])[0])
-                    }))
-                except:
-                     ws.send(json.dumps({
-                        'status': 0,
-                        'type': 'remove_story_conversation',
-                        'message': 'Conversation removed',
-                        'details': -1
-                     }))
-            elif action == 'remove_story_last_conversation':
-                ws.send(json.dumps({
-                    'status': 0,
-                    'type': 'remove_story_last_conversation',
-                    'message': 'Last conversation removed',
-                    'details': json.loads(remove_story_last_conversation(args['storyID'])[0])
-                }))
-            elif action == 'get_story_full_context':
-                ws.send(json.dumps({
-                    'status': 0,
-                    'type': 'get_story_full_context',
-                    'message': 'Full context',
-                    'details': json.loads(get_story_full_context(args['storyID'])[0])
-                }))
-            else:
+            # Parse the api request
+            try:
+                req = json.loads(message)
+                action = req['action']
+                args = req['args']
+            except:
                 ws.send(json.dumps({
                     'status': 1,
                     'type': 'error',
                     'message': 'Invalid request',
-                    'details': 'Invalid action'
+                    'details': 'Parsing error'
                 }))
+
+            if message is not None:
+                if action == 'init':
+                    username = args['username']
+                    subscriptions[username] = (ws, -1)
+                    ws.send(json.dumps({
+                        'type': 'init',
+                        'status': 0,
+                        'message': 'Syn',
+                    }))
+                
+                elif action == 'subscribe':
+                    subscriptions[username] = (ws, args['storyID'])
+                    ws.send(json.dumps({
+                        'type': 'subscribe',
+                        'status': 0,
+                        'message': 'Syn',
+                    }))
+
+                elif action == 'ack':
+                    ws.send(json.dumps({
+                        'type': 'ack',
+                        'status': 0,
+                        'message': 'Syn',
+                    }))
+
+                elif action == 'list_stories':
+                    ws.send(json.dumps({
+                        'status': 0,
+                        'type': 'list_stories',
+                        'message': 'List of stories',
+                        'details': json.loads(list_stories()[0])
+                    }))
+                elif action == 'new_story':
+                    ws.send(json.dumps({
+                        'status': 0,
+                        'type': 'new_story',
+                        'message': 'New story created',
+                        'details': json.loads(new_story(args['theme'], args['location'], args['name'], args['description'])[0])
+                    }))
+                elif action == 'get_story':
+                    ws.send(json.dumps({
+                        'status': 0,
+                        'type': 'get_story',
+                        'message': 'Story data',
+                        'details': json.loads(get_story(args['storyID'])[0])
+                    }))
+                elif action == 'get_story_context':
+                    ws.send(json.dumps({
+                        'status': 0,
+                        'type': 'get_story_context',
+                        'message': 'Story context',
+                        'details': json.loads(get_story_context(args['storyID'])[0])
+                    }))
+                elif action == 'get_story_conversations':
+                    ws.send(json.dumps({
+                        'status': 0,
+                        'type': 'get_story_conversations',
+                        'message': 'Story conversations',
+                        'details': json.loads(get_story_conversations(args['storyID'])[0])
+                    }))
+                elif action == 'new_story_conversation':
+                    ws.send(json.dumps({
+                        'status': 0,
+                        'type': 'new_story_conversation',
+                        'message': 'New conversation created',
+                        'details': json.loads(new_story_conversation(args['storyID'], args['username'], args['message'])[0])
+                    }))
+                elif action == 'new_story_conversation_direct':
+                    ws.send(json.dumps({
+                        'status': 0,
+                        'type': 'new_story_conversation_direct',
+                        'message': 'New conversation created',
+                        'details': json.loads(new_story_conversation_direct(args['storyID'], args['username'], args['message'])[0])
+                    }))
+                elif action == 'new_story_conversation_bot':
+                    ws.send(json.dumps({
+                        'status': 0,
+                        'type': 'new_story_conversation_bot',
+                        'message': 'New conversation created',
+                        'details': json.loads(new_story_conversation_bot(args['storyID'])[0])
+                    }))
+                elif action == 'remove_story_conversation':
+                    try:
+                        ws.send(json.dumps({
+                            'status': 0,
+                            'type': 'remove_story_conversation',
+                            'message': 'Conversation removed',
+                            'details': json.loads(remove_story_conversation(args['storyID'], args['convID'])[0])
+                        }))
+                    except:
+                        ws.send(json.dumps({
+                            'status': 0,
+                            'type': 'remove_story_conversation',
+                            'message': 'Conversation removed',
+                            'details': -1
+                        }))
+                elif action == 'remove_story_last_conversation':
+                    ws.send(json.dumps({
+                        'status': 0,
+                        'type': 'remove_story_last_conversation',
+                        'message': 'Last conversation removed',
+                        'details': json.loads(remove_story_last_conversation(args['storyID'])[0])
+                    }))
+                elif action == 'get_story_full_context':
+                    ws.send(json.dumps({
+                        'status': 0,
+                        'type': 'get_story_full_context',
+                        'message': 'Full context',
+                        'details': json.loads(get_story_full_context(args['storyID'])[0])
+                    }))
+                else:
+                    ws.send(json.dumps({
+                        'status': 1,
+                        'type': 'error',
+                        'message': 'Invalid request',
+                        'details': 'Invalid action'
+                    }))
+    except Exception as e:
+        print(e)
 
 '''
 // JSON API Map with args for WS API:

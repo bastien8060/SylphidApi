@@ -135,16 +135,21 @@ def new_campaign(theme, location, name, description):
 
     # get all (ws, campaignID) in subscriptions, where campaignID == campaignID
     for ws, _campaignID in subscriptions.values():
-        ws.send(json.dumps({
-            'type': 'new_campaign',
-            'data': {
-                'id': new_campaign.id,
-                'name': new_campaign.name,
-                'descrpt': new_campaign.descrpt,
-                'theme': new_campaign.theme,
-                'id': new_campaign.id,
-            }
-        }))
+        if not ws:
+            continue
+        try:
+            ws.send(json.dumps({
+                'type': 'new_campaign',
+                'data': {
+                    'id': new_campaign.id,
+                    'name': new_campaign.name,
+                    'descrpt': new_campaign.descrpt,
+                    'theme': new_campaign.theme,
+                    'id': new_campaign.id,
+                }
+            }))
+        except:
+            pass
 
 
 
@@ -189,13 +194,18 @@ def delete_campaign(campaignID):
 
         # get all (ws, campaignID) in subscriptions, where campaignID == campaignID
         for ws, _campaignID in subscriptions.values():
-            if _campaignID == campaignID:
-                ws.send(json.dumps({
-                    'type': 'delete_campaign',
-                    'data': {
-                        'id': campaignID,
-                    }
-                }))
+            if not ws:
+                continue
+            try:
+                if _campaignID == campaignID:
+                    ws.send(json.dumps({
+                        'type': 'delete_campaign',
+                        'data': {
+                            'id': campaignID,
+                        }
+                    }))
+            except:
+                pass
 
         return resp_handler.get_handler("response_ok", {"data": {
             'id': campaignID,
@@ -271,17 +281,22 @@ def new_campaign_conversation(campaignID, username=None, message=None):
 
         # get all (ws, campaignID) in subscriptions, where campaignID == campaignID
         for ws, _campaignID in subscriptions.values():
-            if _campaignID == campaignID:
-                ws.send(json.dumps({
-                    'type': 'new_conversation',
-                    'status': 0,
-                    'data': {
-                        'id': dnd_conversation.id,
-                        'username': dnd_conversation.username,
-                        'message': dnd_conversation.message,
-                        'campaignID': dnd_conversation.campaignID,
-                    }
-                }))
+            if not ws:
+                continue
+            try:
+                if _campaignID == campaignID:
+                    ws.send(json.dumps({
+                        'type': 'new_conversation',
+                        'status': 0,
+                        'data': {
+                            'id': dnd_conversation.id,
+                            'username': dnd_conversation.username,
+                            'message': dnd_conversation.message,
+                            'campaignID': dnd_conversation.campaignID,
+                        }
+                    }))
+            except:
+                pass
 
         return resp_handler.get_handler("response_ok", {"data": {
             'id': dnd_conversation.id,
@@ -322,17 +337,22 @@ def new_campaign_conversation_dm(campaignID):
 
         # get all (ws, campaignID) in subscriptions, where campaignID == campaignID
         for ws, _campaignID in subscriptions.values():
-            if _campaignID == campaignID:
-                ws.send(json.dumps({
-                    'type': 'new_conversation',
-                    'status': 0,
-                    'data': {
-                        'id': dnd_conversation.id,
-                        'username': dnd_conversation.username,
-                        'message': dnd_conversation.message,
-                        'campaignID': dnd_conversation.campaignID,
-                    }
-                }))
+            if not ws:
+                continue
+            try:
+                if _campaignID == campaignID:
+                    ws.send(json.dumps({
+                        'type': 'new_conversation',
+                        'status': 0,
+                        'data': {
+                            'id': dnd_conversation.id,
+                            'username': dnd_conversation.username,
+                            'message': dnd_conversation.message,
+                            'campaignID': dnd_conversation.campaignID,
+                        }
+                    }))
+            except:
+                pass
 
         return resp_handler.get_handler("response_ok", {"data": {
             'id': dnd_conversation.id,
@@ -357,20 +377,25 @@ def remove_campaign_conversation(campaignID, convID):
 
         # get all (ws, campaignID) in subscriptions, where campaignID == campaignID
         for ws, _campaignID in subscriptions.values():
-            print('going to try to send remove_conversation callback')
-            if _campaignID == campaignID:
-                print('will send remove_conversation callback')
-                ws.send(json.dumps({
-                    'type': 'remove_conversation',
-                    'status': 0,
-                    'data': {
-                        'id': convID,
-                        'status': 'deleted'
-                    }
-                }))
-                print('sent remove_conversation callback')
-            else:
-                print('will not send remove_conversation callback')
+            if not ws:
+                continue
+            try:
+                print('going to try to send remove_conversation callback')
+                if _campaignID == campaignID:
+                    print('will send remove_conversation callback')
+                    ws.send(json.dumps({
+                        'type': 'remove_conversation',
+                        'status': 0,
+                        'data': {
+                            'id': convID,
+                            'status': 'deleted'
+                        }
+                    }))
+                    print('sent remove_conversation callback')
+                else:
+                    print('will not send remove_conversation callback')
+            except:
+                pass
 
 
         return resp_handler.get_handler("response_ok", {"data": {
@@ -395,14 +420,19 @@ def remove_campaign_last_conversation(campaignID):
 
         # get all (ws, campaignID) in subscriptions, where campaignID == campaignID
         for ws, _campaignID in subscriptions.values():
-            if _campaignID == campaignID:
-                ws.send(json.dumps({
-                    'type': 'remove_last_conversation',
-                    'data': {
-                        'id': last_conv.id,
-                        'status': 'deleted'
-                    }
-                }))
+            if not ws:
+                continue
+            try:
+                if _campaignID == campaignID:
+                    ws.send(json.dumps({
+                        'type': 'remove_last_conversation',
+                        'data': {
+                            'id': last_conv.id,
+                            'status': 'deleted'
+                        }
+                    }))
+            except:
+                pass
 
         return resp_handler.get_handler("response_ok", {"data": {
             'id': last_conv.id,
